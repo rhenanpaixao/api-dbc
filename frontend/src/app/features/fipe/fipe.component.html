@@ -1,0 +1,135 @@
+<mat-card class="search-card">
+  <mat-card-header>
+    <mat-card-title>Consulta Tabela FIPE</mat-card-title>
+    <mat-card-subtitle>Histórico de preços por ano de fabricação</mat-card-subtitle>
+  </mat-card-header>
+
+  <mat-card-content>
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" class="search-form">
+
+      <!-- Tipo de veículo -->
+      <mat-form-field appearance="outline">
+        <mat-label>Tipo de veículo</mat-label>
+        <mat-select formControlName="vehicleType">
+          @for (type of vehicleTypes; track type.value) {
+            <mat-option [value]="type.value">{{ type.label }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <!-- Marca -->
+      <mat-form-field appearance="outline">
+        <mat-label>Marca</mat-label>
+        <mat-select formControlName="brandId">
+          @if (loadingBrands) {
+            <mat-option disabled>Carregando...</mat-option>
+          }
+          @for (brand of brands; track brand.code) {
+            <mat-option [value]="brand.code">{{ brand.name }}</mat-option>
+          }
+        </mat-select>
+        @if (loadingBrands) {
+          <mat-progress-spinner matSuffix diameter="20" mode="indeterminate" />
+        }
+      </mat-form-field>
+
+      <!-- Modelo -->
+      <mat-form-field appearance="outline">
+        <mat-label>Modelo</mat-label>
+        <mat-select formControlName="modelId">
+          @if (loadingModels) {
+            <mat-option disabled>Carregando...</mat-option>
+          }
+          @for (model of models; track model.code) {
+            <mat-option [value]="model.code">{{ model.name }}</mat-option>
+          }
+        </mat-select>
+        @if (loadingModels) {
+          <mat-progress-spinner matSuffix diameter="20" mode="indeterminate" />
+        }
+      </mat-form-field>
+
+      <button
+        mat-raised-button
+        color="primary"
+        type="submit"
+        [disabled]="form.invalid || loadingHistory">
+        <mat-icon>search</mat-icon>
+        Consultar
+      </button>
+    </form>
+  </mat-card-content>
+</mat-card>
+
+<!-- Erro -->
+@if (errorMessage) {
+  <div class="error-banner">
+    <mat-icon>error_outline</mat-icon>
+    {{ errorMessage }}
+  </div>
+}
+
+<!-- Loading -->
+@if (loadingHistory) {
+  <div class="loading-container">
+    <mat-progress-spinner mode="indeterminate" diameter="48" />
+    <p>Consultando tabela FIPE...</p>
+  </div>
+}
+
+<!-- Resultado -->
+@if (vehicleHistory && !loadingHistory) {
+  <mat-card class="result-card">
+    <mat-card-header>
+      <mat-card-title>{{ vehicleHistory.brand }} — {{ vehicleHistory.model }}</mat-card-title>
+      <mat-card-subtitle>{{ vehicleHistory.fuel }}</mat-card-subtitle>
+    </mat-card-header>
+
+    <mat-divider />
+
+    <mat-card-content>
+      <table mat-table [dataSource]="vehicleHistory.priceHistory" class="result-table">
+
+        <!-- Ano -->
+        <ng-container matColumnDef="year">
+          <th mat-header-cell *matHeaderCellDef>Ano</th>
+          <td mat-cell *matCellDef="let row">{{ row.year }}</td>
+        </ng-container>
+
+        <!-- Valor -->
+        <ng-container matColumnDef="price">
+          <th mat-header-cell *matHeaderCellDef>Valor FIPE</th>
+          <td mat-cell *matCellDef="let row">{{ row.priceFormatted }}</td>
+        </ng-container>
+
+        <!-- Diferença -->
+        <ng-container matColumnDef="difference">
+          <th mat-header-cell *matHeaderCellDef>Variação (R$)</th>
+          <td mat-cell *matCellDef="let row" [class]="variationClass(row)">
+            {{ row.priceDifferenceFormatted ?? '—' }}
+          </td>
+        </ng-container>
+
+        <!-- Percentual -->
+        <ng-container matColumnDef="percentage">
+          <th mat-header-cell *matHeaderCellDef>Variação (%)</th>
+          <td mat-cell *matCellDef="let row" [class]="variationClass(row)">
+            {{ row.changePercentageFormatted ?? '—' }}
+          </td>
+        </ng-container>
+
+        <!-- Em relação a -->
+        <ng-container matColumnDef="comparedTo">
+          <th mat-header-cell *matHeaderCellDef>Em relação a</th>
+          <td mat-cell *matCellDef="let row">
+            {{ row.comparedToYear ?? '—' }}
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+      </table>
+    </mat-card-content>
+  </mat-card>
+}
+
