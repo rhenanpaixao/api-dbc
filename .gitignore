@@ -1,0 +1,44 @@
+# ──────────────────────────────────────
+#  Backend (Maven / Java)
+# ──────────────────────────────────────
+backend/target/
+backend/.mvn/wrapper/maven-wrapper.jar
+backend/.apt_generated
+backend/.classpath
+backend/.factorypath
+backend/.project
+backend/.settings
+backend/.springBeans
+backend/.sts4-cache
+backend/.idea
+backend/*.iws
+backend/*.iml
+backend/*.ipr
+
+# ──────────────────────────────────────
+#  Frontend (Angular / Node)
+# ──────────────────────────────────────
+frontend/node_modules/
+frontend/dist/
+frontend/.angular/
+frontend/out-tsc/
+
+# ──────────────────────────────────────
+#  Documentação pessoal de estudo
+# ──────────────────────────────────────
+frontend.md
+backend.md
+
+# ──────────────────────────────────────
+#  IDEs
+# ──────────────────────────────────────
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# ──────────────────────────────────────
+#  OS
+# ──────────────────────────────────────
+.DS_Store
+Thumbs.db

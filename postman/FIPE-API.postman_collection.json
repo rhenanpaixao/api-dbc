@@ -1,0 +1,291 @@
+{
+  "info": {
+    "name": "FIPE API — Histórico de Preços",
+    "_postman_id": "fipe-api-dbc-collection",
+    "description": "Coleção completa para testar o microsserviço de consulta à Tabela FIPE.\n\n**Fluxo recomendado:**\n1. Listar Marcas → copie um `code` para a variável `brandId`\n2. Listar Modelos → copie um `code` para a variável `modelId`\n3. Consultar Histórico de Preços",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl",     "value": "http://localhost:8080/api/v1", "type": "string" },
+    { "key": "vehicleType", "value": "cars",                          "type": "string" },
+    { "key": "brandId",     "value": "59",                            "type": "string" },
+    { "key": "modelId",     "value": "5940",                          "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Marcas",
+      "item": [
+        {
+          "name": "Listar Marcas — Carros",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Retorna array não-vazio', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body).to.be.an('array').that.is.not.empty;",
+                  "});",
+                  "pm.test('Cada marca possui code e name', () => {",
+                  "    const brands = pm.response.json();",
+                  "    brands.forEach(b => {",
+                  "        pm.expect(b).to.have.property('code');",
+                  "        pm.expect(b).to.have.property('name');",
+                  "    });",
+                  "});",
+                  "// Salva automaticamente o primeiro code como brandId",
+                  "const first = pm.response.json()[0];",
+                  "if (first) pm.collectionVariables.set('brandId', first.code);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/brands?vehicleType={{vehicleType}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["brands"],
+              "query": [{ "key": "vehicleType", "value": "{{vehicleType}}" }]
+            }
+          }
+        },
+        {
+          "name": "Listar Marcas — Motos",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Retorna array', () => pm.expect(pm.response.json()).to.be.an('array'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/brands?vehicleType=motorcycles",
+              "host": ["{{baseUrl}}"],
+              "path": ["brands"],
+              "query": [{ "key": "vehicleType", "value": "motorcycles" }]
+            }
+          }
+        },
+        {
+          "name": "Listar Marcas — Caminhões",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Retorna array', () => pm.expect(pm.response.json()).to.be.an('array'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/brands?vehicleType=trucks",
+              "host": ["{{baseUrl}}"],
+              "path": ["brands"],
+              "query": [{ "key": "vehicleType", "value": "trucks" }]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Modelos",
+      "item": [
+        {
+          "name": "Listar Modelos por Marca",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Retorna array não-vazio', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body).to.be.an('array').that.is.not.empty;",
+                  "});",
+                  "pm.test('Cada modelo possui code e name', () => {",
+                  "    pm.response.json().forEach(m => {",
+                  "        pm.expect(m).to.have.property('code');",
+                  "        pm.expect(m).to.have.property('name');",
+                  "    });",
+                  "});",
+                  "// Salva automaticamente o primeiro code como modelId",
+                  "const first = pm.response.json()[0];",
+                  "if (first) pm.collectionVariables.set('modelId', first.code);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/brands/{{brandId}}/models?vehicleType={{vehicleType}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["brands", "{{brandId}}", "models"],
+              "query": [{ "key": "vehicleType", "value": "{{vehicleType}}" }]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Veículos — Histórico de Preços",
+      "item": [
+        {
+          "name": "Consultar Histórico — Sucesso",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "",
+                  "pm.test('Resposta possui brand, model, fuel e priceHistory', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body).to.have.all.keys('brand', 'model', 'fuel', 'priceHistory');",
+                  "});",
+                  "",
+                  "pm.test('priceHistory é array não-vazio', () => {",
+                  "    const { priceHistory } = pm.response.json();",
+                  "    pm.expect(priceHistory).to.be.an('array').that.is.not.empty;",
+                  "});",
+                  "",
+                  "pm.test('Anos estão em ordem decrescente', () => {",
+                  "    const years = pm.response.json().priceHistory.map(e => e.year);",
+                  "    for (let i = 0; i < years.length - 1; i++) {",
+                  "        pm.expect(years[i]).to.be.greaterThan(years[i + 1]);",
+                  "    }",
+                  "});",
+                  "",
+                  "pm.test('Todos os anos (exceto o mais antigo) possuem variação', () => {",
+                  "    const history = pm.response.json().priceHistory;",
+                  "    if (history.length < 2) return;",
+                  "    history.slice(0, -1).forEach(entry => {",
+                  "        pm.expect(entry).to.have.property('changePercentage');",
+                  "        pm.expect(entry).to.have.property('priceDifference');",
+                  "        pm.expect(entry).to.have.property('comparedToYear');",
+                  "    });",
+                  "});",
+                  "",
+                  "pm.test('Ano mais antigo não possui campos de variação', () => {",
+                  "    const history = pm.response.json().priceHistory;",
+                  "    if (history.length < 2) return;",
+                  "    const oldest = history[history.length - 1];",
+                  "    pm.expect(oldest.changePercentage).to.be.undefined;",
+                  "    pm.expect(oldest.priceDifference).to.be.undefined;",
+                  "    pm.expect(oldest.comparedToYear).to.be.undefined;",
+                  "});",
+                  "",
+                  "pm.test('Preços estão formatados em pt-BR', () => {",
+                  "    const first = pm.response.json().priceHistory[0];",
+                  "    pm.expect(first.priceFormatted).to.include('R$');",
+                  "});",
+                  "",
+                  "pm.test('Tempo de resposta < 5s', () => pm.expect(pm.response.responseTime).to.be.below(5000));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/vehicles/{{brandId}}/{{modelId}}?vehicleType={{vehicleType}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["vehicles", "{{brandId}}", "{{modelId}}"],
+              "query": [{ "key": "vehicleType", "value": "{{vehicleType}}" }]
+            }
+          }
+        },
+        {
+          "name": "Consultar Histórico — VW Gol (fixo)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Marca é VW - VolksWagen', () => {",
+                  "    pm.expect(pm.response.json().brand).to.eql('VW - VolksWagen');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/vehicles/59/5940?vehicleType=cars",
+              "host": ["{{baseUrl}}"],
+              "path": ["vehicles", "59", "5940"],
+              "query": [{ "key": "vehicleType", "value": "cars" }]
+            }
+          }
+        },
+        {
+          "name": "Erro — brandId inválido (0)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 400 para brandId = 0', () => pm.response.to.have.status(400));",
+                  "pm.test('Corpo contém status e message', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body).to.have.property('status', 400);",
+                  "    pm.expect(body).to.have.property('message');",
+                  "    pm.expect(body).to.have.property('timestamp');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/vehicles/0/5940",
+              "host": ["{{baseUrl}}"],
+              "path": ["vehicles", "0", "5940"]
+            }
+          }
+        },
+        {
+          "name": "Erro — IDs inexistentes na FIPE (404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 404 para IDs inexistentes', () => pm.response.to.have.status(404));",
+                  "pm.test('Mensagem de erro presente', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body).to.have.property('status', 404);",
+                  "    pm.expect(body.message).to.be.a('string').and.not.empty;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/vehicles/99999/99999",
+              "host": ["{{baseUrl}}"],
+              "path": ["vehicles", "99999", "99999"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
