@@ -14,12 +14,18 @@
     min-width: 180px;
   }
 
-  button {
-    margin-top: 4px;
-    height: 56px;
+  .form-actions {
     display: flex;
-    align-items: center;
     gap: 8px;
+    margin-top: 4px;
+    align-items: center;
+
+    button {
+      height: 56px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
   }
 }
 

@@ -10,7 +10,8 @@
       <!-- Tipo de veículo -->
       <mat-form-field appearance="outline">
         <mat-label>Tipo de veículo</mat-label>
-        <mat-select formControlName="vehicleType">
+        <mat-select formControlName="vehicleType" (selectionChange)="onVehicleTypeChange()">
+          <mat-option value="" disabled>Selecione o tipo de veículo</mat-option>
           @for (type of vehicleTypes; track type.value) {
             <mat-option [value]="type.value">{{ type.label }}</mat-option>
           }
@@ -20,43 +21,64 @@
       <!-- Marca -->
       <mat-form-field appearance="outline">
         <mat-label>Marca</mat-label>
-        <mat-select formControlName="brandId">
-          @if (loadingBrands) {
-            <mat-option disabled>Carregando...</mat-option>
-          }
-          @for (brand of brands; track brand.code) {
-            <mat-option [value]="brand.code">{{ brand.name }}</mat-option>
-          }
-        </mat-select>
+        <input
+          matInput
+          [formControl]="brandDisplayCtrl"
+          [matAutocomplete]="brandAuto"
+          (focus)="onBrandFocus()"
+          placeholder="Digite para buscar...">
         @if (loadingBrands) {
           <mat-progress-spinner matSuffix diameter="20" mode="indeterminate" />
         }
+        <mat-autocomplete #brandAuto="matAutocomplete" [displayWith]="displayName" (optionSelected)="onBrandSelected($event)">
+          @if (filteredBrands.length === 0 && !loadingBrands && brandDisplayCtrl.value) {
+            <mat-option disabled>Marca não encontrada</mat-option>
+          }
+          @for (brand of filteredBrands; track brand.code) {
+            <mat-option [value]="brand">{{ brand.name }}</mat-option>
+          }
+        </mat-autocomplete>
       </mat-form-field>
 
       <!-- Modelo -->
       <mat-form-field appearance="outline">
         <mat-label>Modelo</mat-label>
-        <mat-select formControlName="modelId">
-          @if (loadingModels) {
-            <mat-option disabled>Carregando...</mat-option>
-          }
-          @for (model of models; track model.code) {
-            <mat-option [value]="model.code">{{ model.name }}</mat-option>
-          }
-        </mat-select>
+        <input
+          matInput
+          [formControl]="modelDisplayCtrl"
+          [matAutocomplete]="modelAuto"
+          (focus)="onModelFocus()"
+          placeholder="Digite para buscar...">
         @if (loadingModels) {
           <mat-progress-spinner matSuffix diameter="20" mode="indeterminate" />
         }
+        <mat-autocomplete #modelAuto="matAutocomplete" [displayWith]="displayName" (optionSelected)="onModelSelected($event)">
+          @if (filteredModels.length === 0 && !loadingModels && modelDisplayCtrl.value) {
+            <mat-option disabled>Modelo não encontrado</mat-option>
+          }
+          @for (model of filteredModels; track model.code) {
+            <mat-option [value]="model">{{ model.name }}</mat-option>
+          }
+        </mat-autocomplete>
       </mat-form-field>
 
-      <button
-        mat-raised-button
-        color="primary"
-        type="submit"
-        [disabled]="form.invalid || loadingHistory">
-        <mat-icon>search</mat-icon>
-        Consultar
-      </button>
+      <div class="form-actions">
+        <button
+          mat-raised-button
+          color="primary"
+          type="submit"
+          [disabled]="form.invalid || loadingHistory">
+          <mat-icon>search</mat-icon>
+          Consultar
+        </button>
+        <button
+          mat-stroked-button
+          type="button"
+          (click)="onClear()">
+          <mat-icon>clear</mat-icon>
+          Limpar
+        </button>
+      </div>
     </form>
   </mat-card-content>
 </mat-card>

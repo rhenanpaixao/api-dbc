@@ -1,8 +1,10 @@
 import { Component, DestroyRef, inject, OnInit } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormBuilder, FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
+import { MatInputModule } from '@angular/material/input';
+import { MatAutocompleteModule, MatAutocompleteSelectedEvent } from '@angular/material/autocomplete';
 import { MatButtonModule } from '@angular/material/button';
 import { MatTableModule } from '@angular/material/table';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -29,6 +31,8 @@ interface VehicleTypeOption {
     ReactiveFormsModule,
     MatFormFieldModule,
     MatSelectModule,
+    MatInputModule,
+    MatAutocompleteModule,
     MatButtonModule,
     MatTableModule,
     MatProgressSpinnerModule,
@@ -61,38 +65,106 @@ export class FipeComponent implements OnInit {
 
   readonly displayedColumns = ['year', 'price', 'difference', 'percentage', 'comparedTo'];
 
+  filteredBrands: Brand[] = [];
+  filteredModels: VehicleModel[] = [];
+
+  readonly brandDisplayCtrl = new FormControl<Brand | string | null>(null);
+  readonly modelDisplayCtrl = new FormControl<VehicleModel | string | null>({ value: null, disabled: true });
+
+  // Used by mat-autocomplete [displayWith] to show the name instead of [object Object].
+  // Works for both Brand and VehicleModel since both share the { name: string } shape.
+  readonly displayName = (value: { name: string } | string | null): string => {
+    if (!value) return '';
+    return typeof value === 'string' ? value : value.name;
+  };
+
   readonly form = this.fb.nonNullable.group({
-    vehicleType: ['cars' as VehicleType, Validators.required],
+    vehicleType: ['' as VehicleType, Validators.required],
     brandId: ['', Validators.required],
     modelId: ['', Validators.required],
   });
 
   ngOnInit(): void {
-    this.form.controls.modelId.disable();
-    this.loadBrands();
-
-    this.form.controls.vehicleType.valueChanges
+    // Subscriptions to display controls: filter lists as user types
+    this.brandDisplayCtrl.valueChanges
       .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(() => {
-        this.form.patchValue({ brandId: '', modelId: '' });
-        this.form.controls.modelId.disable();
-        this.models = [];
-        this.vehicleHistory = null;
-        this.loadBrands();
+      .subscribe(value => {
+        if (typeof value !== 'string') return; // Brand object set by Angular Material on selection
+        const filter = value.toLowerCase();
+        this.filteredBrands = this.brands.filter(b => b.name.toLowerCase().includes(filter));
+        if (value === '') {
+          this.form.controls.brandId.setValue('');
+        }
+      });
+
+    this.modelDisplayCtrl.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(value => {
+        if (typeof value !== 'string') return;
+        const filter = value.toLowerCase();
+        this.filteredModels = this.models.filter(m => m.name.toLowerCase().includes(filter));
+        if (value === '') {
+          this.form.controls.modelId.setValue('', { emitEvent: false });
+        }
       });
 
     this.form.controls.brandId.valueChanges
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(brandId => {
         if (brandId) {
-          this.form.patchValue({ modelId: '' });
-          this.form.controls.modelId.enable();
+          this.form.patchValue({ modelId: '' }, { emitEvent: false });
+          this.modelDisplayCtrl.setValue(null, { emitEvent: false });
+          this.filteredModels = [];
+          this.modelDisplayCtrl.enable();
           this.vehicleHistory = null;
           this.loadModels(brandId);
         } else {
-          this.form.controls.modelId.disable();
+          this.modelDisplayCtrl.disable();
+          this.modelDisplayCtrl.setValue(null, { emitEvent: false });
+          this.filteredModels = [];
         }
       });
+  }
+
+  onVehicleTypeChange(): void {
+    this.resetState();
+    if (this.form.controls.vehicleType.value) {
+      this.loadBrands();
+    }
+  }
+
+  private resetState(): void {
+    this.form.patchValue({ brandId: '', modelId: '' }, { emitEvent: false });
+    this.brandDisplayCtrl.setValue(null, { emitEvent: false });
+    this.modelDisplayCtrl.setValue(null, { emitEvent: false });
+    this.modelDisplayCtrl.disable();
+    this.brands = [];
+    this.filteredBrands = [];
+    this.filteredModels = [];
+    this.models = [];
+    this.vehicleHistory = null;
+  }
+
+  onBrandFocus(): void {
+    this.filteredBrands = [...this.brands];
+  }
+
+  onBrandSelected(event: MatAutocompleteSelectedEvent): void {
+    const brand = event.option.value as Brand;
+    // Angular Material sets FormControl to the Brand object via onChange(brand).
+    // Override it back to a string so DefaultValueAccessor.writeValue doesn't call toString().
+    this.brandDisplayCtrl.setValue(brand.name, { emitEvent: false });
+    this.form.controls.brandId.setValue(brand.code);
+  }
+
+  onModelFocus(): void {
+    this.filteredModels = [...this.models];
+  }
+
+  onModelSelected(event: MatAutocompleteSelectedEvent): void {
+    const model = event.option.value as VehicleModel;
+    this.modelDisplayCtrl.setValue(model.name, { emitEvent: false });
+    this.form.controls.modelId.setValue(model.code);
   }
 
   private loadBrands(): void {
@@ -100,9 +172,12 @@ export class FipeComponent implements OnInit {
     this.loadingBrands = true;
     this.errorMessage = null;
 
-    this.fipeService.getBrands(vehicleType).subscribe({
+    this.fipeService.getBrands(vehicleType)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
       next: brands => {
         this.brands = brands;
+        this.filteredBrands = [...brands];
         this.loadingBrands = false;
       },
       error: () => {
@@ -117,9 +192,12 @@ export class FipeComponent implements OnInit {
     this.loadingModels = true;
     this.errorMessage = null;
 
-    this.fipeService.getModels(brandId, vehicleType).subscribe({
+    this.fipeService.getModels(brandId, vehicleType)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
       next: models => {
         this.models = models;
+        this.filteredModels = [...models];
         this.loadingModels = false;
       },
       error: () => {
@@ -127,6 +205,12 @@ export class FipeComponent implements OnInit {
         this.loadingModels = false;
       },
     });
+  }
+
+  onClear(): void {
+    this.resetState();
+    this.form.controls.vehicleType.setValue('' as VehicleType, { emitEvent: false });
+    this.errorMessage = null;
   }
 
   onSubmit(): void {
@@ -139,6 +223,7 @@ export class FipeComponent implements OnInit {
 
     this.fipeService
       .getVehicleHistory(brandId, modelId, vehicleType)
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: history => {
           this.vehicleHistory = history;
